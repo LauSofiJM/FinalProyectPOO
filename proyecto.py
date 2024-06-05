@@ -50,20 +50,30 @@ class User:
         for user in system.users:
             if self.username == username and self.password == password:
                 print("Welcome to the system!")
+
+                
+
             else:
                 print("Invalid username or password.")
+                register(system)
 
 
             
-
 def register(system):
     print("Welcome to the Warehouse System.")
     
-    registered = False
     
     while True:
-        user = None
-        if not registered:
+        
+        print("\nPlease choose an option:")
+        print("1. Register")
+        print("2. Login")
+        print("3. Exit")
+        print("4. Show users")  # This is for testing if the users are registered
+
+        option = input("Enter your choice: ")
+        
+        if option == "1":
             print("\nPlease register a new user:")
             name = input("Enter your name: ")
             phone = input("Enter your phone number: ")
@@ -74,25 +84,18 @@ def register(system):
 
             user = User(system, name, phone, email, password, username, role)
             user.register_user()
-            registered = True
 
-        print("\nPlease choose an option:")
-        print("1. Login")
-        print("2. Exit")
-        print("3. Show users")  # This is for testing if the users are registered
-
-        option = input("Enter your choice: ")
-
-        if option == "1":
+        if option == "2":
             username1 = input("Enter your username: ").lower()
             password1 = input("Enter your password: ")
             user.login(username1, password1)
+            break
             
-        elif option == "2":
+        elif option == "3":
             print("Exiting program. Goodbye!")
             break
 
-        elif option == "3":
+        elif option == "4":
             User.display_registered_users(system)
 
         else:
