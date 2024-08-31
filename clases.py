@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # User Management Classes
 class UserManager:
@@ -20,29 +20,31 @@ class UserManager:
 
     def register_user(self):
         while True:
-            try:
-                username, password = input("Enter your username and password: ").split()
-                if username in self.user_data:
-                    print("The username already exists.")
-                else:
-                    self.user_data[username] = password
-                    self.save_users()
-                    print(f"User {username} successfully registered.")
-                    break
-            except ValueError:
-                print("Invalid input format. Please enter both username and password.")
+            username = input("Enter your username: ")
+            if username in self.user_data:
+                print("The username already exists.")
+            else:
+                password = input("Enter your password: ")
+                self.user_data[username] = password
+                self.save_users()
+                print(f"User {username} successfully registered.")
+                break
 
     def login_user(self):
         while True:
-            try:
-                username, password = input("Enter your username and password: ").split()
-                if username in self.user_data and self.user_data[username] == password:
+            username = input("Enter your username: ")
+            if username in self.user_data:
+                password = input("Enter your password: ")
+                if self.user_data[username] == password:
                     print("Login successful.")
                     return True
                 else:
-                    print("Incorrect username or password.")
-            except ValueError:
-                print("Invalid input format. Please enter both username and password.")
+                    print("Incorrect password.")
+            else:
+                print("Username not found.")
+            if input("Try again? (yes/no): ").strip().lower() != 'yes':
+                break
+        return False
 
 # Supplier Class
 class Supplier:
@@ -144,6 +146,9 @@ class Inventory:
         return results
 
     def generate_report(self, report_type="all"):
+        today = datetime.now().date()
+        one_month_from_now = today + timedelta(days=30)
+        
         if report_type == "all":
             print("Full Inventory Report:")
             self.show_inventory()
@@ -155,8 +160,14 @@ class Inventory:
         elif report_type == "expiring_soon":
             print("Expiring Soon Report:")
             for product in self.total_inv:
-                if isinstance(product, PerishableProduct) and product.expiration_date < datetime.now().date():
-                    print(product)
+                if isinstance(product, PerishableProduct):
+                    if today <= product.expiration_date <= one_month_from_now:
+                        print(f"Expiring Soon: {product}")
+        elif report_type == "expired":
+            print("Expired Products Report:")
+            for product in self.total_inv:
+                if isinstance(product, PerishableProduct) and product.expiration_date < today:
+                    print(f"Expired: {product}")
         else:
             print("Invalid report type.")
 
@@ -232,101 +243,77 @@ if __name__ == "__main__":
                                     print("Invalid date format. Please enter the date in YYYY-MM-DD format.")
                             product = PerishableProduct(name, quantity, price, expiration_date_parsed, supplier, min_stock, max_stock)
                         else:
-                            shelf_life = input("Enter shelf life (e.g., 2 years): ")
+                            shelf_life = input("Enter shelf life (e.g., '2 years'): ")
                             product = NonPerishableProduct(name, quantity, price, shelf_life, supplier, min_stock, max_stock)
-                        
+
                         inventory.add_product(product)
 
                     elif inventory_choice == 2:
-                        print("Current Inventory:")
                         inventory.show_inventory()
-                        while True:
-                            try:
-                                product_index = int(input("Enter the number of the product to remove: ")) - 1
-                                inventory.remove_product(product_index)
-                                break
-                            except ValueError:
-                                print("Invalid input. Please enter a valid number.")
+                        try:
+                            product_index = int(input("Enter the number of the product to remove: ")) - 1
+                            inventory.remove_product(product_index)
+                        except ValueError:
+                            print("Invalid input. Please enter a valid number.")
 
                     elif inventory_choice == 3:
-                        print("Current Inventory:")
                         inventory.show_inventory()
-                        while True:
-                            try:
-                                product_index = int(input("Enter the number of the product to edit: ")) - 1
-                                quantity = input("Enter new quantity (leave empty to keep current): ")
-                                price = input("Enter new price (leave empty to keep current): ")
-
-                                new_quantity = int(quantity) if quantity else None
-                                new_price = float(price) if price else None
-
-                                inventory.update_product(product_index, quantity=new_quantity, price=new_price)
-                                break
-                            except ValueError:
-                                print("Invalid input. Please enter valid numbers for quantity and price.")
+                        try:
+                            product_index = int(input("Enter the number of the product to update: ")) - 1
+                            quantity = input("Enter the new quantity (leave blank to keep current quantity): ")
+                            price = input("Enter the new price (leave blank to keep current price): ")
+                            quantity = int(quantity) if quantity else None
+                            price = float(price) if price else None
+                            inventory.update_product(product_index, quantity, price)
+                        except ValueError:
+                            print("Invalid input. Please enter valid numbers.")
 
                     elif inventory_choice == 4:
-                        print("Current Inventory:")
                         inventory.show_inventory()
 
                     elif inventory_choice == 5:
-                        print("Search for a Product:")
-                        search_name = input("Enter product name to search (leave empty to skip): ")
-                        search_category = input("Enter category to search (perishable/non-perishable, leave empty to skip): ").strip().lower()
-                        while True:
-                            try:
-                                search_min_price = input("Enter minimum price to search (leave empty to skip): ")
-                                search_max_price = input("Enter maximum price to search (leave empty to skip): ")
-                                search_min_price = float(search_min_price) if search_min_price else None
-                                search_max_price = float(search_max_price) if search_max_price else None
-                                break
-                            except ValueError:
-                                print("Invalid input. Please enter numeric values for prices.")
+                        search_name = input("Enter product name to search (leave blank to skip): ")
+                        search_category = input("Enter product category (perishable/non-perishable, leave blank to skip): ").strip().lower()
+                        search_category = PerishableProduct if search_category == 'perishable' else NonPerishableProduct if search_category == 'non-perishable' else None
+                        min_price = input("Enter minimum price to search (leave blank to skip): ")
+                        max_price = input("Enter maximum price to search (leave blank to skip): ")
+                        min_price = float(min_price) if min_price else None
+                        max_price = float(max_price) if max_price else None
 
-                        if search_category == 'perishable':
-                            category = PerishableProduct
-                        elif search_category == 'non-perishable':
-                            category = NonPerishableProduct
-                        else:
-                            category = None
-
-                        results = inventory.search_product(name=search_name, category=category, min_price=search_min_price, max_price=search_max_price)
+                        results = inventory.search_product(name=search_name, category=search_category, min_price=min_price, max_price=max_price)
                         if results:
-                            print("Search Results:")
-                            for result in results:
-                                print(result)
+                            for product in results:
+                                print(product)
                         else:
-                            print("No products found matching your criteria.")
+                            print("No products found matching the search criteria.")
 
                     elif inventory_choice == 6:
-                        print("Generate Report:")
-                        print("1. Full Inventory")
-                        print("2. Low Stock")
-                        print("3. Expiring Soon")
-                        while True:
-                            try:
-                                report_choice = int(input("Enter your choice: "))
-                                if report_choice in [1, 2, 3]:
-                                    break
-                                else:
-                                    print("Invalid choice. Please choose 1, 2, or 3.")
-                            except ValueError:
-                                print("Invalid input. Please enter a number.")
+                        print("\nReport Types:")
+                        print("1. Full Inventory Report")
+                        print("2. Low Stock Report")
+                        print("3. Expiring Soon Report")
+                        print("4. Expired Products Report")
 
-                        if report_choice == 1:
-                            inventory.generate_report(report_type="all")
-                        elif report_choice == 2:
-                            inventory.generate_report(report_type="low_stock")
-                        elif report_choice == 3:
-                            inventory.generate_report(report_type="expiring_soon")
+                        report_choice = input("Enter your choice: ")
+                        report_type = "all" if report_choice == '1' else \
+                                      "low_stock" if report_choice == '2' else \
+                                      "expiring_soon" if report_choice == '3' else \
+                                      "expired" if report_choice == '4' else None
 
+                        if report_type:
+                            inventory.generate_report(report_type=report_type)
+                        else:
+                            print("Invalid report type selected.")
+                    
                     elif inventory_choice == 7:
-                        print("Logging out.")
+                        print("Logging out...")
                         break
-
+            else:
+                print("Login failed. Please try again.")
+        
         elif choice == '3':
-            print("Thank you for using the application. Goodbye!")
+            print("Exiting the program. Goodbye!")
             break
 
         else:
-            print("Invalid choice, please try again.")
+            print("Invalid choice. Please try again.")
